@@ -36,11 +36,16 @@ function getElementToolStateManager(element) {
  * @returns {undefined}
  */
 function addToolState(element, toolName, measurementData) {
+  // 1. get toolStateManager
   const toolStateManager = getElementToolStateManager(element);
 
+  // 2. add uuid to data
   measurementData.uuid = measurementData.uuid || uuidv4();
+
+  // 3. use toolStateManager to add data, we actually set data into specific imgId for a specific tool
   toolStateManager.add(element, toolName, measurementData);
 
+  // 4. prep event data and trigger MEASUREMENT_ADDED event
   const eventType = EVENTS.MEASUREMENT_ADDED;
   const eventData = {
     toolName,

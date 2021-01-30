@@ -42,7 +42,7 @@ const _moveEndEvents = {
  * @param {function} [doneMovingCallback]
  * @returns {void}
  */
-export default function(
+export default function (
   eventData,
   toolName,
   annotation,
@@ -96,12 +96,12 @@ export default function(
   // TODO: SETUP IN all other manipulators
 
   // Add event listeners
-  _moveEvents[interactionType].forEach(eventType => {
+  _moveEvents[interactionType].forEach((eventType) => {
     element.addEventListener(eventType, moveHandler);
   });
   element.addEventListener(EVENTS.TOUCH_START, _stopImmediatePropagation);
 
-  _moveEndEvents[interactionType].forEach(eventType => {
+  _moveEndEvents[interactionType].forEach((eventType) => {
     element.addEventListener(eventType, moveEndHandler);
   });
 
@@ -155,6 +155,10 @@ function _moveHandler(
 
   const page = currentPoints.page;
   const fingerOffset = -57;
+
+  // pageToPixel: Converts a point in the page coordinate system to the pixel coordinate system
+  // The "page" coordinate system gives the position of a pixel relative to the
+  // top-left corner of the entire Document in which the pixel is located.
   const targetLocation = external.cornerstone.pageToPixel(
     element,
     interactionType === 'touch' ? page.x + fingerOffset : page.x,
@@ -178,6 +182,7 @@ function _moveHandler(
     activeTool.updateCachedStats(image, element, annotation);
   }
 
+  // trigger MEASUREMENT_MODIFIED event
   const eventType = EVENTS.MEASUREMENT_MODIFIED;
   const modifiedEventData = {
     toolName,
@@ -198,10 +203,10 @@ function _endHandler(
   success = true
 ) {
   // Remove event listeners
-  _moveEvents[interactionType].forEach(eventType => {
+  _moveEvents[interactionType].forEach((eventType) => {
     element.removeEventListener(eventType, moveHandler);
   });
-  _moveEndEvents[interactionType].forEach(eventType => {
+  _moveEndEvents[interactionType].forEach((eventType) => {
     element.removeEventListener(eventType, moveEndHandler);
   });
   element.removeEventListener(EVENTS.TOUCH_START, _stopImmediatePropagation);

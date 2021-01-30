@@ -58,16 +58,17 @@ function newImageIdSpecificToolStateManager() {
 
     const imageIdToolState = toolState[imageId];
 
-    // If we don't have tool state for this tool name, add an empty object
+    // If we don't have tool state for the specific tool, add an empty object with data prop for it
     if (imageIdToolState.hasOwnProperty(toolName) === false) {
       imageIdToolState[toolName] = {
         data: [],
       };
     }
 
+    // use the specific tool to get the toolData
     const toolData = imageIdToolState[toolName];
 
-    // Finally, add this new tool to the state
+    // add new data to it
     toolData.data.push(data);
   }
 
