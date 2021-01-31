@@ -47,7 +47,7 @@ export default class LengthTool extends BaseAnnotationTool {
     this.throttledUpdateCachedStats = throttle(this.updateCachedStats, 110);
   }
 
-  // consume by src\eventDispatchers\mouseEventHandlers\addNewMeasurement.js or other eventHandler
+  // consume by src\eventDispatchers\mouseEventHandlers\addNewMeasurement.js or other like touch eventHandler
   createNewMeasurement(eventData) {
     const goodEventData =
       eventData && eventData.currentPoints && eventData.currentPoints.image;
@@ -93,8 +93,8 @@ export default class LengthTool extends BaseAnnotationTool {
   }
 
   /**
-   *
-   *
+   * This helper can identify dist from line segment to a point
+   * This method consumed by BaseAnnotationTool.mouseMoveCallback
    * @param {*} element
    * @param {*} data
    * @param {*} coords
@@ -123,6 +123,11 @@ export default class LengthTool extends BaseAnnotationTool {
     );
   }
 
+  /**
+   * Update length data and set invalidate to false
+   * This method will be modified to throttledUpdateCachedStats
+   * and consumed by renderToolData
+   */
   updateCachedStats(image, element, data) {
     const { rowPixelSpacing, colPixelSpacing } = getPixelSpacing(image);
 
@@ -140,6 +145,9 @@ export default class LengthTool extends BaseAnnotationTool {
     data.invalidated = false;
   }
 
+  /**
+   * consumed by imageRenderedEventDispatcher.onImageRendered
+   */
   renderToolData(evt) {
     const eventData = evt.detail;
     const {
@@ -154,34 +162,32 @@ export default class LengthTool extends BaseAnnotationTool {
       return;
     }
 
-    // We have tool data for this element - iterate over each one and draw it
     const context = getNewContext(eventData.canvasContext.canvas);
     const { image, element } = eventData;
     const { rowPixelSpacing, colPixelSpacing } = getPixelSpacing(image);
-
     const lineWidth = toolStyle.getToolWidth();
     const lineDash = getModule('globalConfiguration').configuration.lineDash;
 
+    // 1. We have tool data for this element - iterate over each one and draw it
     for (let i = 0; i < toolData.data.length; i++) {
       const data = toolData.data[i];
 
+      // if visible false, skip this iteration
       if (data.visible === false) {
         continue;
       }
 
+      // 1,1 actual draw
       draw(context, (context) => {
-        // Configurable shadow
+        // 1.1.1 Configurable shadow
         setShadow(context, this.configuration);
-
         const color = toolColors.getColorIfActive(data);
-
         const lineOptions = { color };
-
         if (renderDashed) {
           lineOptions.lineDash = lineDash;
         }
 
-        // Draw the measurement line
+        // 1.1.2 Draw the measurement line
         drawLine(
           context,
           element,
@@ -190,7 +196,8 @@ export default class LengthTool extends BaseAnnotationTool {
           lineOptions
         );
 
-        // Draw the handles
+        // 1.1.3 Draw the handles
+        // for length, data.handles have 2 props, start and end
         const handleOptions = {
           color,
           handleRadius,
@@ -202,6 +209,7 @@ export default class LengthTool extends BaseAnnotationTool {
           drawHandles(context, eventData, data.handles, handleOptions);
         }
 
+        // 1.1.4 setup textBox x, y
         if (!data.handles.textBox.hasMoved) {
           const coords = {
             x: Math.max(data.handles.start.x, data.handles.end.x),
@@ -219,11 +227,7 @@ export default class LengthTool extends BaseAnnotationTool {
           data.handles.textBox.y = coords.y;
         }
 
-        // Move the textbox slightly to the right and upwards
-        // So that it sits beside the length tool handle
-        const xOffset = 10;
-
-        // Update textbox stats
+        // 1.1.5 Update stats
         if (data.invalidated === true) {
           if (data.length) {
             this.throttledUpdateCachedStats(image, element, data);
@@ -232,8 +236,11 @@ export default class LengthTool extends BaseAnnotationTool {
           }
         }
 
+        // 1.1.6 draw the dashed link b/n textBox and annotation
+        // Move the text box slightly to the right and upwards
+        // So that it sits beside the length tool handle
+        const xOffset = 10;
         const text = textBoxText(data, rowPixelSpacing, colPixelSpacing);
-
         drawLinkedTextBox(
           context,
           element,
@@ -251,6 +258,7 @@ export default class LengthTool extends BaseAnnotationTool {
 
     // - SideEffect: Updates annotation 'suffix'
     function textBoxText(annotation, rowPixelSpacing, colPixelSpacing) {
+      // annotation is alias of tool data
       const measuredValue = _sanitizeMeasuredValue(annotation.length);
 
       // measured value is not defined, return empty string
@@ -260,7 +268,6 @@ export default class LengthTool extends BaseAnnotationTool {
 
       // Set the length text suffix depending on whether or not pixelSpacing is available
       let suffix = 'mm';
-
       if (!rowPixelSpacing || !colPixelSpacing) {
         suffix = 'pixels';
       }

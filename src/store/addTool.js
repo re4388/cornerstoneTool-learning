@@ -16,19 +16,23 @@ const logger = getLogger('addTool');
  * @param {Object} [props] Override the default tool props
  * @returns {undefined}
  */
-const addToolForElement = function(element, ApiTool, props) {
+const addToolForElement = function (element, ApiTool, props) {
   // Instantiating the tool here makes it harder to accidentally add
   // The same tool (by reference) for multiple elements (which would reassign the tool
   // To a new element).
-  const tool = new ApiTool(props);
-  const toolAlreadyAddedToElement = getToolForElement(element, tool.name);
 
+  // 1. Instantiating the tool
+  const tool = new ApiTool(props);
+
+  // 2. check if the tool had attached to element
+  const toolAlreadyAddedToElement = getToolForElement(element, tool.name);
   if (toolAlreadyAddedToElement) {
     logger.warn('%s has already been added to the target element', tool.name);
 
     return;
   }
 
+  // 3. attached element to tool and push tool to global tool
   tool.element = element;
   store.state.tools.push(tool);
 };
@@ -44,9 +48,9 @@ const addToolForElement = function(element, ApiTool, props) {
  * @param {Object} [props] Override the default tool configuration
  * @returns {undefined}
  */
-const addTool = function(ApiTool, props) {
+const addTool = function (ApiTool, props) {
   _addToolGlobally(ApiTool, props);
-  store.state.enabledElements.forEach(element => {
+  store.state.enabledElements.forEach((element) => {
     addToolForElement(element, ApiTool, props);
   });
 };
@@ -62,14 +66,17 @@ const addTool = function(ApiTool, props) {
  * @param {Object} [props] Override the default tool configuration
  * @returns {undefined}
  */
-const _addToolGlobally = function(ApiTool, props) {
+const _addToolGlobally = function (ApiTool, props) {
+  // 1. check if globalToolSyncEnabled set to true
   const { configuration } = getModule('globalConfiguration');
-
   if (!configuration.globalToolSyncEnabled) {
     return;
   }
 
+  // 2. instantiate the tool
   const tool = new ApiTool(props);
+
+  // 3. check if globally added, if yes, return
   const toolAlreadyAddedGlobally =
     store.state.globalTools[tool.name] !== undefined;
 
@@ -79,6 +86,7 @@ const _addToolGlobally = function(ApiTool, props) {
     return;
   }
 
+  // 4. add to global state
   store.state.globalTools[tool.name] = {
     tool: ApiTool,
     props,

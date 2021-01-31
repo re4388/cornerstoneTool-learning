@@ -36,7 +36,7 @@ const logger = getLogger('store:setToolMode');
  * @param {(string[])} interactionTypes
  * @returns {undefined}
  */
-const setToolActiveForElement = function(
+const setToolActiveForElement = function (
   element,
   toolName,
   options,
@@ -55,7 +55,7 @@ const setToolActiveForElement = function(
 
     // Iterate over specific interaction types and set active
     // This is used as a secondary check on active tools to find the active "parts" of the tool
-    tool.supportedInteractionTypes.forEach(interactionType => {
+    tool.supportedInteractionTypes.forEach((interactionType) => {
       if (
         interactionTypes === undefined ||
         interactionTypes.includes(interactionType)
@@ -110,9 +110,9 @@ function _setToolCursorIfPrimary(element, options, tool) {
  * @param {(string[])} interactionTypes
  * @returns {undefined}
  */
-const setToolActive = function(toolName, options, interactionTypes) {
+const setToolActive = function (toolName, options, interactionTypes) {
   _trackGlobalToolModeChange('active', toolName, options, interactionTypes);
-  store.state.enabledElements.forEach(element => {
+  store.state.enabledElements.forEach((element) => {
     setToolActiveForElement(element, toolName, options, interactionTypes);
   });
 };
@@ -292,7 +292,7 @@ function setToolModeForElement(mode, changeEvent, element, toolName, options) {
  */
 function setToolMode(mode, changeEvent, toolName, options) {
   _trackGlobalToolModeChange(mode, toolName, options);
-  store.state.enabledElements.forEach(element => {
+  store.state.enabledElements.forEach((element) => {
     setToolModeForElement(mode, changeEvent, element, toolName, options);
   });
 }
@@ -314,7 +314,7 @@ function _resolveInputConflicts(element, tool, options, interactionTypes) {
   // Iterate over the interaction types our tool supports.
   // For each one we intend to activate, check for potential conflicts
   // And resolve them
-  tool.supportedInteractionTypes.forEach(interactionType => {
+  tool.supportedInteractionTypes.forEach((interactionType) => {
     if (
       interactionTypes === undefined ||
       interactionTypes.includes(interactionType)
@@ -333,16 +333,16 @@ function _resolveInputConflicts(element, tool, options, interactionTypes) {
   });
 
   const activeToolsForElement = store.state.tools.filter(
-    t =>
+    (t) =>
       t.element === element &&
       t.mode === 'active' &&
       t.supportedInteractionTypes.length > 0
   );
 
-  activeToolsForElement.forEach(t => {
+  activeToolsForElement.forEach((t) => {
     let toolHasAnyActiveInteractionType = false;
 
-    t.supportedInteractionTypes.forEach(interactionType => {
+    t.supportedInteractionTypes.forEach((interactionType) => {
       if (t.options[`is${interactionType}Active`]) {
         toolHasAnyActiveInteractionType = true;
       }
@@ -375,18 +375,18 @@ function _resolveMouseInputConflicts(tool, element, options) {
   }
 
   const activeToolWithMatchingMouseButtonMask = store.state.tools.find(
-    t =>
+    (t) =>
       t.element === element &&
       t.mode === 'active' &&
       t.options.isMouseActive === true &&
       Array.isArray(t.options.mouseButtonMask) &&
-      t.options.mouseButtonMask.some(v => mouseButtonMask.includes(v))
+      t.options.mouseButtonMask.some((v) => mouseButtonMask.includes(v))
   );
 
   if (activeToolWithMatchingMouseButtonMask) {
     // Remove collissions
     activeToolWithMatchingMouseButtonMask.options.mouseButtonMask = activeToolWithMatchingMouseButtonMask.options.mouseButtonMask.filter(
-      mask => !mouseButtonMask.includes(mask)
+      (mask) => !mouseButtonMask.includes(mask)
     );
 
     // If no remaining bindings, set inactive
@@ -409,14 +409,14 @@ function _resolveMouseInputConflicts(tool, element, options) {
  */
 function _resolveTouchInputConflicts(tool, element) {
   const activeTouchTool = store.state.tools.find(
-    t =>
+    (t) =>
       t.element === element &&
       t.mode === 'active' &&
       t.options.isTouchActive === true
   );
 
   const activeMultiTouchToolWithOneTouchPointer = store.state.tools.find(
-    t =>
+    (t) =>
       t.element === element &&
       t.mode === 'active' &&
       t.options.isMultiTouchActive === true &&
@@ -450,7 +450,7 @@ function _resolveTouchInputConflicts(tool, element) {
  */
 function _resolveMultiTouchInputConflicts(tool, element) {
   const activeMultiTouchTool = store.state.tools.find(
-    t =>
+    (t) =>
       t.element === element &&
       t.mode === 'active' &&
       t.options.isMultiTouchActive === true &&
@@ -461,7 +461,7 @@ function _resolveMultiTouchInputConflicts(tool, element) {
 
   if (tool.configuration.touchPointers === 1) {
     activeTouchTool = store.state.tools.find(
-      t =>
+      (t) =>
         t.element === element &&
         t.mode === 'active' &&
         t.options.isTouchActive === true
@@ -501,7 +501,7 @@ function _resolveMultiTouchInputConflicts(tool, element) {
 function _resolveGenericInputConflicts(interactionType, tool, element) {
   const interactionTypeFlag = `is${interactionType}Active`;
   const activeToolWithActiveInteractionType = store.state.tools.find(
-    t =>
+    (t) =>
       t.element === element &&
       t.mode === 'active' &&
       t.options[interactionTypeFlag] === true
@@ -518,6 +518,7 @@ function _resolveGenericInputConflicts(interactionType, tool, element) {
 }
 
 function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
+  // do nothing if globalToolSyncEnabled is false
   if (!globalConfiguration.configuration.globalToolSyncEnabled) {
     return;
   }
@@ -561,21 +562,21 @@ function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
     );
 
     // Remove the incoming bindings from all global tools
-    Object.keys(store.state.globalTools).forEach(key => {
+    Object.keys(store.state.globalTools).forEach((key) => {
       const tool = store.state.globalTools[key];
 
       tool.activeBindings = tool.activeBindings.filter(
-        binding => !stringBindings.includes(binding)
+        (binding) => !stringBindings.includes(binding)
       );
     });
 
     // @HACK: Clear mouse bindings
-    if (stringBindings.some(binding => binding.includes('Mouse-DELETE'))) {
+    if (stringBindings.some((binding) => binding.includes('Mouse-DELETE'))) {
       globalTool.activeBindings = globalTool.activeBindings.filter(
-        binding => !binding.includes('Mouse')
+        (binding) => !binding.includes('Mouse')
       );
       stringBindings = stringBindings.filter(
-        binding => !binding.includes('Mouse')
+        (binding) => !binding.includes('Mouse')
       );
     }
 
@@ -600,7 +601,7 @@ function _determineStringBindings(toolName, options, interactionTypes) {
     // eslint-disable-next-line new-cap
     const tool = new globalTool.tool(globalTool.props);
 
-    tool.supportedInteractionTypes.forEach(interactionType => {
+    tool.supportedInteractionTypes.forEach((interactionType) => {
       if (
         interactionTypes === undefined ||
         interactionTypes.includes(interactionType)
@@ -611,7 +612,7 @@ function _determineStringBindings(toolName, options, interactionTypes) {
 
           // Add or delete
           if (Array.isArray(mouseButtonMasks) && mouseButtonMasks.length > 0) {
-            mouseButtonMasks.forEach(mask =>
+            mouseButtonMasks.forEach((mask) =>
               stringBindings.push(`${interactionType}-${mask}`)
             );
           } else if (
@@ -665,7 +666,7 @@ function _getNormalizedOptions(options) {
 
   // Now filter out anything that is not an number or is the number 0
   options.mouseButtonMask = options.mouseButtonMask.filter(
-    o => typeof o === 'number' && o !== 0
+    (o) => typeof o === 'number' && o !== 0
   );
 
   return options;

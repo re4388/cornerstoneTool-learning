@@ -60,6 +60,7 @@ export default function (
     options
   );
 
+  // 1. init flags
   options.hasMoved = false;
 
   const { element } = eventData;
@@ -70,10 +71,13 @@ export default function (
   handle.active = true;
   state.isToolLocked = true;
 
+  // 2. setup moveHandler
   function moveHandler(evt) {
     _moveHandler(toolName, annotation, handle, options, interactionType, evt);
   }
+
   // So we don't need to inline the entire `moveEndEventHandler` function
+  // 3. setup moveEndHandler, notice that we pass moveHandler in its arg
   function moveEndHandler(evt) {
     _moveEndHandler(
       toolName,
@@ -95,7 +99,7 @@ export default function (
   // Or... Handle "CANCEL"
   // TODO: SETUP IN all other manipulators
 
-  // Add event listeners
+  // 4. With above handlers, we can setup event listeners, we got 5 to add
   _moveEvents[interactionType].forEach((eventType) => {
     element.addEventListener(eventType, moveHandler);
   });
@@ -104,6 +108,10 @@ export default function (
   _moveEndEvents[interactionType].forEach((eventType) => {
     element.addEventListener(eventType, moveEndHandler);
   });
+
+  // 5. addActiveManipulatorForElement
+  // what is this state do? it's a object to keep track all stuff
+  // also passed with a cancelFn (_cancelEventHandler)
 
   // When cancelling... What is our active tool?
   // `isToolLocked` ... Track which (annotation) tool is being manipulated
@@ -149,6 +157,7 @@ function _moveHandler(
   interactionType,
   evt
 ) {
+  // 1. set x, y value, by pageToPixel
   const { currentPoints, image, element, buttons } = evt.detail;
 
   options.hasMoved = true;
@@ -174,15 +183,17 @@ function _moveHandler(
     clipToBox(handle, image);
   }
 
+  // 2. update image
   external.cornerstone.updateImage(element);
 
+  // 3. update tool cached state
   const activeTool = getActiveTool(element, buttons, interactionType);
 
   if (activeTool instanceof BaseAnnotationTool) {
     activeTool.updateCachedStats(image, element, annotation);
   }
 
-  // trigger MEASUREMENT_MODIFIED event
+  // 4. trigger MEASUREMENT_MODIFIED event
   const eventType = EVENTS.MEASUREMENT_MODIFIED;
   const modifiedEventData = {
     toolName,
@@ -202,7 +213,7 @@ function _endHandler(
   doneMovingCallback,
   success = true
 ) {
-  // Remove event listeners
+  // 1. Remove event listeners
   _moveEvents[interactionType].forEach((eventType) => {
     element.removeEventListener(eventType, moveHandler);
   });
@@ -213,19 +224,21 @@ function _endHandler(
 
   state.isToolLocked = false;
 
+  // 2. invoke doneMovingCallback
   if (typeof doneMovingCallback === 'function') {
     doneMovingCallback(success);
   }
 
+  // handle deprecated
   if (typeof options.doneMovingCallback === 'function') {
     logger.warn(
-      '`options.doneMovingCallback` has been depricated. See https://github.com/cornerstonejs/cornerstoneTools/pull/915 for details.'
+      '`options.doneMovingCallback` has been deprecated. See https://github.com/cornerstonejs/cornerstoneTools/pull/915 for details.'
     );
 
     options.doneMovingCallback(success);
   }
 
-  // Update Image
+  // 3. Update Image
   external.cornerstone.updateImage(element);
 }
 
@@ -239,10 +252,12 @@ function _moveEndHandler(
   evt,
   doneMovingCallback
 ) {
+  // 1. setup handle.x handle.y
   const eventData = evt.detail;
   const { element, currentPoints } = eventData;
   let moveNewHandleSuccessful = true;
 
+  // if we don't event moved, stop here
   if (options.hasMoved === false) {
     return;
   }
@@ -255,6 +270,7 @@ function _moveEndHandler(
     interactionType === 'touch' ? page.y + fingerOffset : page.y
   );
 
+  //  2. set handle closing flags and remove active manipulator
   // "Release" the handle
   annotation.active = false;
   annotation.invalidated = true;
@@ -285,6 +301,7 @@ function _moveEndHandler(
   //   return;
   // }
 
+  // 3. handle outsideImage cases
   if (options.preventHandleOutsideImage) {
     clipToBox(handle, evt.detail.image);
   }
@@ -299,6 +316,7 @@ function _moveEndHandler(
     removeToolState(element, toolName, annotation);
   }
 
+  // 4. call _endHandler helper
   _endHandler(
     interactionType,
     options,
@@ -321,11 +339,13 @@ function _cancelEventHandler(
   element,
   doneMovingCallback
 ) {
+  // 1. change related flags
   // "Release" the handle
   annotation.active = false;
   annotation.invalidated = true;
   handle.active = false;
 
+  // 2. call _endHandler with false flag
   _endHandler(
     interactionType,
     options,

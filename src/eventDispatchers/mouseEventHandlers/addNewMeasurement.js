@@ -18,7 +18,7 @@ export default function (evt, tool) {
   evt.preventDefault();
   evt.stopPropagation();
 
-  // 2. get data
+  // 2. get measurementData
   const eventData = evt.detail;
   const element = eventData.element;
   // notice measurementData include props: visible, active, color, invalidated and handles (start, end and textBox for length tool)
@@ -28,11 +28,13 @@ export default function (evt, tool) {
     return;
   }
 
-  // 3. addToolState: add data into state by toolStateManager and trigger add measurement event
+  // 3. add to tool state: add data into state by toolStateManager and trigger add measurement event
   addToolState(element, tool.name, measurementData);
 
-  // update image
+  // 4. update image
   external.cornerstone.updateImage(element);
+
+  // 5. handle Moving events
 
   // if it's length tool, measurementData.handles have 3 key, start, end and textBox
   const handleMover =

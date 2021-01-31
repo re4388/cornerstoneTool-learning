@@ -5,20 +5,20 @@ import external from './../externalModules.js';
 
 const segmentationModule = getModule('segmentation');
 
-const onImageRendered = function(evt) {
+const onImageRendered = function (evt) {
   const eventData = evt.detail;
   const element = eventData.element;
 
-  // Render Annotation Tools
+  // 1. Prep Annotation Tools
   const toolsToRender = state.tools.filter(
-    tool =>
+    (tool) =>
       tool.element === element &&
       (tool.mode === 'active' ||
         tool.mode === 'passive' ||
         tool.mode === 'enabled')
   );
 
-  // Must be using stacks in order to use segmentation tools.
+  // 2. Prep stacks in order to use segmentation tools.
   const stackToolState = getToolState(element, 'stack');
 
   const segmentationConfiguration = segmentationModule.configuration;
@@ -31,9 +31,10 @@ const onImageRendered = function(evt) {
     onImageRenderedBrushEventHandler(evt);
   }
 
+  // 3. renderTool via canvas
   const context = eventData.canvasContext.canvas.getContext('2d');
 
-  toolsToRender.forEach(tool => {
+  toolsToRender.forEach((tool) => {
     if (tool.renderToolData) {
       context.save();
       tool.renderToolData(evt);
@@ -42,14 +43,14 @@ const onImageRendered = function(evt) {
   });
 };
 
-const enable = function(element) {
+const enable = function (element) {
   element.addEventListener(
     external.cornerstone.EVENTS.IMAGE_RENDERED,
     onImageRendered
   );
 };
 
-const disable = function(element) {
+const disable = function (element) {
   element.removeEventListener(
     external.cornerstone.EVENTS.IMAGE_RENDERED,
     onImageRendered
