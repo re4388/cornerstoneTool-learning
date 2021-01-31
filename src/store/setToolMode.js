@@ -42,14 +42,14 @@ const setToolActiveForElement = function (
   options,
   interactionTypes
 ) {
-  // If interactionTypes was passed in via options
+  // 1. set interactionTypes if interactionTypes was passed in via options
   if (interactionTypes === undefined && Array.isArray(options)) {
     interactionTypes = options;
     options = null;
   }
 
+  // 2. set interactionType active and config showSVGCursors
   const tool = getToolForElement(element, toolName);
-
   if (tool) {
     _resolveInputConflicts(element, tool, options, interactionTypes);
 
@@ -74,7 +74,7 @@ const setToolActiveForElement = function (
     }
   }
 
-  // Resume normal behavior
+  // 3. set Tool active For Element
   setToolModeForElement('active', null, element, toolName, options);
 };
 
@@ -111,7 +111,10 @@ function _setToolCursorIfPrimary(element, options, tool) {
  * @returns {undefined}
  */
 const setToolActive = function (toolName, options, interactionTypes) {
+  // 1. track global tool mode changes
   _trackGlobalToolModeChange('active', toolName, options, interactionTypes);
+
+  // 2. set tool active
   store.state.enabledElements.forEach((element) => {
     setToolActiveForElement(element, toolName, options, interactionTypes);
   });
@@ -228,14 +231,15 @@ const setToolPassive = setToolMode.bind(
  * @returns {undefined}
  */
 function setToolModeForElement(mode, changeEvent, element, toolName, options) {
+  // 1. check tool availability
   const tool = getToolForElement(element, toolName);
-
   if (!tool) {
     logger.warn('Unable to find tool "%s" for enabledElement', toolName);
 
     return;
   }
 
+  // 2. merge stuff we passed from options
   options = _getNormalizedOptions(options);
 
   // Keep the same if not an array (undefined)
@@ -256,12 +260,13 @@ function setToolModeForElement(mode, changeEvent, element, toolName, options) {
   tool.mode = mode;
   tool.mergeOptions(options);
 
-  // Call tool's hook for this event, if one exists
+  // 3. Call tool's hook for this event, if one exists
+  // not all tool have, binary tool, crosshair, magnify, cobbAngle have
   if (tool[`${mode}Callback`]) {
     tool[`${mode}Callback`](element, options);
   }
 
-  // Emit event indicating tool state change
+  // 4. Emit event indicating tool state change
   if (changeEvent) {
     const statusChangeEventData = {
       options,
@@ -333,24 +338,24 @@ function _resolveInputConflicts(element, tool, options, interactionTypes) {
   });
 
   const activeToolsForElement = store.state.tools.filter(
-    (t) =>
-      t.element === element &&
-      t.mode === 'active' &&
-      t.supportedInteractionTypes.length > 0
+    (tool) =>
+      tool.element === element &&
+      tool.mode === 'active' &&
+      tool.supportedInteractionTypes.length > 0
   );
 
-  activeToolsForElement.forEach((t) => {
+  activeToolsForElement.forEach((tool) => {
     let toolHasAnyActiveInteractionType = false;
 
-    t.supportedInteractionTypes.forEach((interactionType) => {
-      if (t.options[`is${interactionType}Active`]) {
+    tool.supportedInteractionTypes.forEach((interactionType) => {
+      if (tool.options[`is${interactionType}Active`]) {
         toolHasAnyActiveInteractionType = true;
       }
     });
 
     if (!toolHasAnyActiveInteractionType) {
-      logger.log("Setting tool %s's to PASSIVE", t.name);
-      setToolPassiveForElement(element, t.name);
+      logger.log("Setting tool %s's to PASSIVE", tool.name);
+      setToolPassiveForElement(element, tool.name);
     }
   });
 }
@@ -375,21 +380,24 @@ function _resolveMouseInputConflicts(tool, element, options) {
   }
 
   const activeToolWithMatchingMouseButtonMask = store.state.tools.find(
-    (t) =>
-      t.element === element &&
-      t.mode === 'active' &&
-      t.options.isMouseActive === true &&
-      Array.isArray(t.options.mouseButtonMask) &&
-      t.options.mouseButtonMask.some((v) => mouseButtonMask.includes(v))
+    (tool) =>
+      // find attached element, active one, matching mask
+      tool.element === element &&
+      tool.mode === 'active' &&
+      tool.options.isMouseActive === true &&
+      Array.isArray(tool.options.mouseButtonMask) &&
+      tool.options.mouseButtonMask.some((mask) =>
+        mouseButtonMask.includes(mask)
+      )
   );
 
   if (activeToolWithMatchingMouseButtonMask) {
-    // Remove collissions
+    // Remove mask collisions from global tool state
     activeToolWithMatchingMouseButtonMask.options.mouseButtonMask = activeToolWithMatchingMouseButtonMask.options.mouseButtonMask.filter(
       (mask) => !mouseButtonMask.includes(mask)
     );
 
-    // If no remaining bindings, set inactive
+    // If no remaining bindings in global state, set mouse inactive
     if (
       activeToolWithMatchingMouseButtonMask.options.mouseButtonMask.length === 0
     ) {
@@ -518,23 +526,25 @@ function _resolveGenericInputConflicts(interactionType, tool, element) {
 }
 
 function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
-  // do nothing if globalToolSyncEnabled is false
+  // 1. do nothing if globalToolSyncEnabled is false
   if (!globalConfiguration.configuration.globalToolSyncEnabled) {
     return;
   }
 
-  // Update Tool History
+  // 2. Update Tool History and push to globalToolChangeHistory
   const historyEvent = {
     mode,
     args: [toolName, options],
   };
 
+  // strange part, maybe dead code?
   if (interactionTypes) {
     historyEvent.push(interactionTypes);
   }
 
   store.state.globalToolChangeHistory.push(historyEvent);
 
+  // 3. dequeue if over limit
   const arbitraryChangeHistoryLimit = 50;
 
   if (
@@ -543,7 +553,7 @@ function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
     store.state.globalToolChangeHistory.shift();
   }
 
-  // Update ActiveBindings Array
+  // 4.return if tool is not available globally
   const globalTool = store.state.globalTools[toolName];
 
   if (!globalTool) {
@@ -554,6 +564,7 @@ function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
     return;
   }
 
+  // 5. Update ActiveBindings Array
   if (mode === 'active') {
     let stringBindings = _determineStringBindings(
       toolName,
@@ -561,7 +572,7 @@ function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
       interactionTypes
     );
 
-    // Remove the incoming bindings from all global tools
+    // 5.1 Remove the incoming bindings from all global tools
     Object.keys(store.state.globalTools).forEach((key) => {
       const tool = store.state.globalTools[key];
 
@@ -589,6 +600,7 @@ function _trackGlobalToolModeChange(mode, toolName, options, interactionTypes) {
 }
 
 function _determineStringBindings(toolName, options, interactionTypes) {
+  // 1. set interactionTypes
   if (interactionTypes === undefined && Array.isArray(options)) {
     interactionTypes = options;
     options = null;
@@ -598,9 +610,11 @@ function _determineStringBindings(toolName, options, interactionTypes) {
   const globalTool = store.state.globalTools[toolName];
 
   if (globalTool) {
+    // 2. instantiate tool
     // eslint-disable-next-line new-cap
     const tool = new globalTool.tool(globalTool.props);
 
+    // 3. push current interactionType to stringBindings for each interactionType
     tool.supportedInteractionTypes.forEach((interactionType) => {
       if (
         interactionTypes === undefined ||
@@ -660,6 +674,7 @@ function _getNormalizedOptions(options) {
     options.mouseButtonMask = [];
   }
 
+  // if it's not array, we wrap it into array
   if (!Array.isArray(options.mouseButtonMask)) {
     options.mouseButtonMask = [options.mouseButtonMask];
   }
@@ -674,9 +689,9 @@ function _getNormalizedOptions(options) {
 
 function _mergeMouseButtonMask(newMask, oldMask) {
   // Merges and removes duplicates
-  return newMask.concat(oldMask).reduce((acc, m) => {
-    if (acc.indexOf(m) === -1) {
-      acc.push(m);
+  return newMask.concat(oldMask).reduce((acc, mask) => {
+    if (acc.indexOf(mask) === -1) {
+      acc.push(mask);
     }
 
     return acc;

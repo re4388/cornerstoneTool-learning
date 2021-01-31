@@ -17,6 +17,8 @@ an SVG is requested:
 export default class MouseCursor {
   constructor(iconGroupString, options) {
     this.iconGroupString = iconGroupString;
+
+    // we will update option object, options take high precedent, defaultOptions second
     this.options = Object.assign(
       {},
       cursorModule.getters.defaultOptions(),
